@@ -1,5 +1,13 @@
 import * as babylon from "babylon";
 
+const newListJunction = (t, jtype, args) => t.newExpression(
+    t.identifier("Junction"),
+    [
+        t.stringLiteral(jtype),
+        args
+    ]
+)
+
 const newJunction = (t, jtype, args) => t.newExpression(
     t.identifier("Junction"),
     [
@@ -105,18 +113,24 @@ let counter = 0
 export default function (babel) {
     const { types: t } = babel;
     return {
-        name: "ast-transform", // not required
         visitor: {
             Program(path) {
                 path.node.body.unshift(...addJunctionClass(t, path.node.body))
             },
             Identifier(path) {
                 const junctType = path.node.name
-                if (junctTypes.indexOf(path.node.name) < 0 || !path.parentPath.isCallExpression()) {
-                    return
-                }
-                const par = path.parentPath
-                par.replaceWith(newJunction(t, junctType, par.node.arguments))
+                if (junctTypes.indexOf(path.node.name) < 0) return
+                let par = path.parentPath
+                if(path.parentPath.isCallExpression()) {
+                    par.replaceWith(newJunction(t, junctType, par.node.arguments))
+                } else if(
+                    path.parentPath.isMemberExpression()
+                    //&& path.parent.property.name === "apply"
+                    && path.parentPath.parentPath.isCallExpression()
+                ) {
+                    par = par.parentPath
+                    par.replaceWith(newListJunction(t, junctType, par.node.arguments[1]))
+                } else return
                 const varDecl = par.findParent(n => n.isVariableDeclarator())
                 if(varDecl) {
                     varDecl.scope
