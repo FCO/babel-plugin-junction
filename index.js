@@ -45,7 +45,8 @@ const replaceStatement = (t, varName, bind) => {
     } while(bind = bind.findParent(n => n.isExpression()))
     exp.replaceWith(buildRun(t, exp, varName))
     const ifSt = exp.findParent(n => n.isIfStatement())
-    if(ifSt) {
+    const whileSt = exp.findParent(n => n.isWhileStatement())
+    if(ifSt || whileSt) {
         exp.replaceWith(
             t.callExpression(
                 t.memberExpression(
